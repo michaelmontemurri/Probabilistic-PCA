@@ -1,0 +1,542 @@
+\documentclass{article}
+
+% Recommended, but optional, packages for figures and better typesetting:
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{booktabs} % for professional tables
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% hyperref makes hyperlinks in the resulting PDF.
+% If your build breaks (sometimes temporarily if a hyperlink spans a page)
+% please comment out the following usepackage line and replace
+% \usepackage{icml2018} with \usepackage[nohyperref]{icml2018} above.
+\usepackage{hyperref}
+
+% Attempt to make hyperref and algorithmic work together better:
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% If accepted, instead use the following line for the camera-ready submission:
+\usepackage[accepted]{icml2018_ift6269}
+% SLJ: -> use this for your IFT 6269 project report!
+
+% The \icmltitle you define below is probably too long as a header.
+% Therefore, a short form for the running title is supplied here:
+\icmltitlerunning{Probabilistic PCA and Extensions}
+
+\begin{document}
+
+\twocolumn[
+\icmltitle{Probabilistic PCA and Extensions}
+
+% List of affiliations: The first argument should be a (short)
+% identifier you will use later to specify author affiliations
+% Academic affiliations should list Department, University, City, Region, Country
+% Industry affiliations should list Company, City, Region, Country
+
+% You can specify symbols, otherwise they are numbered in order.
+% Ideally, you should not use this facility. Affiliations will be numbered
+% in order of appearance and this is the preferred way.
+
+\begin{icmlauthorlist}
+\icmlauthor{Michael Montemurri}{mc}
+\icmlauthor{Ahmed Mhedhbi}{udm}
+
+\end{icmlauthorlist}
+
+\icmlaffiliation{mc}{Department of Mathematics and Statistics, McGill University, Montréal, Canada}
+\icmlaffiliation{udm}{Departement d’informatique et de recherche opérationnelle, Université de Montréal, Montréal, Canada}
+
+\icmlcorrespondingauthor{Michael Montemurri}{michael.montemurri@mail.mcgill.ca}
+\icmlcorrespondingauthor{Ahmed Mhedhbi}{}
+
+% You may provide any keywords that you
+% find helpful for describing your paper; these are used to populate
+% the "keywords" metadata in the PDF but will not be shown in the document
+\icmlkeywords{Probabilistic PCA}
+
+\vskip 0.3in
+]
+
+% this must go after the closing bracket ] following \twocolumn[ ...
+
+% This command actually creates the footnote in the first column
+% listing the affiliations and the copyright notice.
+% The command takes one argument, which is text to display at the start of the footnote.
+% The \icmlEqualContribution command is standard text for equal contribution.
+% Remove it (just {}) if you do not need this facility.
+
+%\printAffiliationsAndNotice{}  % leave blank if no need to mention equal contribution
+\printAffiliationsAndNotice{\icmlEqualContribution} % otherwise use the standard text.
+
+\begin{abstract}
+%4-6 senetence astract
+abstract goes here
+\end{abstract}
+
+
+{\footnotesize
+\begin{verbatim}
+dvips -Ppdf -tletter -G0 -o paper.ps paper.dvi
+ps2pdf paper.ps
+\end{verbatim}}
+
+\section{Introduction}
+% Introduce Classical PCA, its limitations, and a brief extension into kernel PCA
+
+%Motivation a probabilistic formulation of PCA?
+
+%Once the Probabilistic formulation is developed, what can we do.
+
+\textbf{Principal Component Analysis (PCA)} has long served as a cornerstone in data analysis and dimensionality reduction, with applications spanning image processing, bioinformatics, finance, and natural language processing. By projecting high-dimensional data onto a lower-dimensional subspace, PCA efficiently captures the most significant features of the data while filtering out noise. However, for over 90 years, classical PCA lacked a formal probabilistic interpretation.
+
+This limitation was addressed in 1997 when \textbf{Tipping and Bishop} introduced \textbf{Probabilistic PCA (PPCA)}~\cite{}, framing PCA within a probabilistic model. PPCA models observed data as a linear transformation of lower-dimensional latent variables, with Gaussian noise accounting for variations not captured by the latent structure. This approach not only quantifies uncertainty in the data but also derives posterior distributions over the latent variables, enabling their estimation given observed data. Moreover, PPCA's probabilistic foundation facilitates parameter estimation through Bayesian techniques, such as the Expectation-Maximization (EM) algorithm.
+
+While PPCA does not inherently improve PCA’s performance in dimensionality reduction, its probabilistic nature enables powerful model extensions. \textbf{Tipping and Bishop} extended PPCA to \textbf{Mixture of PPCA Models}, allowing for data generated from multiple sources or clusters. \textbf{Zhang et al.} introduced nonlinearity into PPCA through kernel methods, resulting in \textbf{Probabilistic Kernel PCA} (PKPCA). Further advancing this, \textbf{Alvarez et al.} incorporated time-dependent kernel functions, enabling PPCA to model temporal dependencies in time-series data by leveraging concepts from \textbf{Hidden Markov Models (HMMs)}.
+
+In this report, we explore the theoretical foundations and practical applications of PPCA and its extensions. We begin with a review of classical PCA and PPCA before investigating key extensions, including Mixture Models and Probabilistic Kernel PCA. We introduce original contributions by employing Bayesian optimization to identify optimal kernel parameters and functions for PKPCA. Experimental results are presented to compare analytical and EM-based PPCA, evaluate Mixture Models, and assess the performance of PKPCA in dynamic settings. Through this work, we aim to highlight PPCA’s versatility in tackling complex data challenges while offering novel insights to the field.
+
+  
+\section{PCA and the Probabilistic PCA model}
+\subsection{PCA and Its Limitations}
+%Briefly explain the premise of PCA and how it works, applications, etc.
+
+Principal Component Analysis (PCA) is a widely used technique for dimensionality reduction and feature extraction. 
+It identifies a lower-dimensional subspace by projecting data onto orthonormal axes, called principal components, such that the retained variance under projection is maximized.
+ Formally, let $\mathbf{X} \in \mathbb{R}^{N \times d}$ represent a dataset of $N$ observations, where each observation $\mathbf{t}_n \in \mathbb{R}^d$ is a $d$-dimensional vector. 
+ The sample covariance matrix is defined as 
+\[
+\mathbf{S} = \frac{1}{N} \sum_{n=1}^N (\mathbf{t}_n - \bar{\mathbf{t}})(\mathbf{t}_n - \bar{\mathbf{t}})^\top,
+\]
+where $\bar{\mathbf{t}}$ is the sample mean. The principal components are given by the dominant eigenvectors $\mathbf{w}_j$ (those associated with the largest eigenvalues $\lambda_j$) of $\mathbf{S}$,
+ satisfying $\mathbf{S}\mathbf{w}_j = \lambda_j \mathbf{w}_j$. By projecting the data onto the subspace spanned by the first $q$ principal components, PCA provides a $q$-dimensional
+  representation $\mathbf{x}_n = \mathbf{W}^\top (\mathbf{t}_n - \bar{\mathbf{t}})$, where $\mathbf{W} = [\mathbf{w}_1, \mathbf{w}_2, \dots, \mathbf{w}_q]$.
+
+where:
+\begin{itemize}
+    \item $\mathbf{S} = \frac{1}{N} \sum_{n=1}^N (\mathbf{x}_n - \bar{\mathbf{x}})(\mathbf{x}_n - \bar{\mathbf{x}})^\top$ is the sample covariance matrix,
+    \item $\bar{\mathbf{x}} = \frac{1}{N} \sum_{n=1}^N \mathbf{x}_n$ is the mean of the dataset,
+    \item $\mathbf{U} \in \mathbb{R}^{d \times q}$ is a matrix whose columns are the top $q$ eigenvectors of $\mathbf{S}$, corresponding to the largest $q$ eigenvalues.
+\end{itemize}
+
+
+While PCA provides an optimal linear representation in terms of variance maximization, it suffers from several limitations:
+\begin{enumerate}
+    \item \textbf{Linear Assumption}: PCA assumes that the data lies in or near a linear subspace, making it unsuitable for datasets with complex nonlinear structures.
+    \item \textbf{No Probabilistic Interpretation}: Classical PCA lacks a probabilistic framework, preventing it from quantifying uncertainty or modeling latent variable distributions.
+    \item \textbf{Global Representation}: PCA provides a single global linear subspace, which may not adequately capture multimodal or heterogeneous data distributions.
+\end{enumerate}
+
+These limitations motivated the development of Probabilistic PCA (PPCA), which introduces a probabilistic interpretation to address some of these challenges. In the following sections, we explore the PPCA model and its extensions, which build on the foundational principles of PCA to overcome these limitations.
+
+\subsubsection*{Notation Used Throughout the Paper}
+\begin{itemize}
+    \item $\mathbf{X} \in \mathbb{R}^{N \times d}$: Observed dataset of $N$ samples, each with $d$ dimensions.
+    \item $\mathbf{x}_n \in \mathbb{R}^d$: $n$-th data point.
+    \item $\bar{\mathbf{x}} \in \mathbb{R}^d$: Mean of the dataset.
+    \item $\mathbf{S} \in \mathbb{R}^{d \times d}$: Sample covariance matrix.
+    \item $\mathbf{U} \in \mathbb{R}^{d \times q}$: Matrix of principal components (top $q$ eigenvectors of $\mathbf{S}$).
+    \item $\mathbf{z}_n \in \mathbb{R}^q$: Lower-dimensional representation of $\mathbf{x}_n$ in the principal component subspace.
+    \item $q$: Target dimensionality ($q < d$).
+\end{itemize}
+
+This notation will serve as the basis for the probabilistic reformulation and extensions of PCA discussed in subsequent sections.
+
+\subsection{The PPCA Model}
+Probabilistic Principal Component Analysis (PPCA) extends classical PCA by introducing a probabilistic framework, which provides a generative interpretation of the observed data.
+
+In PPCA, the observed \( d \)-dimensional data, \( \mathbf{x}_n \in \mathbb{R}^d \), is modeled as a linear transformation of \( q \)-dimensional latent variables \( \mathbf{z}_n \in \mathbb{R}^q \), with additive Gaussian noise. The generative model is given by:
+\[
+\mathbf{x}_n = \mathbf{W} \mathbf{z}_n + \boldsymbol{\mu} + \boldsymbol{\epsilon}_n, \quad \boldsymbol{\epsilon}_n \sim \mathcal{N}(\mathbf{0}, \sigma^2 \mathbf{I}),
+\]
+where:
+\begin{itemize}
+    \item \( \mathbf{W} \in \mathbb{R}^{d \times q} \) is the weight matrix that maps the latent variables to the observed space,
+    \item \( \boldsymbol{\mu} \in \mathbb{R}^d \) is the mean vector of the observed data,
+    \item \( \boldsymbol{\epsilon}_n \sim \mathcal{N}(\mathbf{0}, \sigma^2 \mathbf{I}) \) represents isotropic Gaussian noise with variance \( \sigma^2 \).
+\end{itemize}
+
+The latent variables \( \mathbf{z}_n \) are assigned a standard normal prior:
+\[
+p(\mathbf{z}_n) = \mathcal{N}(\mathbf{0}, \mathbf{I}),
+\]
+where \( \mathbf{I} \) is the identity matrix. 
+
+The marginal likelihood of the observed data \( \mathbf{x}_n \) can then be derived by integrating over the latent variables:
+\[
+p(\mathbf{x}_n) = \int p(\mathbf{x}_n | \mathbf{z}_n) p(\mathbf{z}_n) \, d\mathbf{z}_n.
+\]
+By substituting the Gaussian form of \( p(\mathbf{x}_n | \mathbf{z}_n) \) and \( p(\mathbf{z}_n) \), the observed data \( \mathbf{x}_n \) follows a multivariate Gaussian distribution:
+\[
+p(\mathbf{x}_n) = \mathcal{N}(\boldsymbol{\mu}, \mathbf{C}), \quad \mathbf{C} = \mathbf{W} \mathbf{W}^\top + \sigma^2 \mathbf{I},
+\]
+where \( \mathbf{C} \) is the covariance matrix capturing the contributions of both the latent variables and noise.
+
+% Maybe we can go into more detail on this derivation but I dont really think its necessary
+
+
+The posterior distribution of the latent variables \( \mathbf{z}_n \) given the observed data \( \mathbf{x}_n \) is also Gaussian:
+\[
+p(\mathbf{z}_n | \mathbf{x}_n) = \mathcal{N}(\mathbf{M}^{-1} \mathbf{W}^\top (\mathbf{x}_n - \boldsymbol{\mu}), \sigma^2 \mathbf{M}^{-1}),
+\]
+where:
+\[
+\mathbf{M} = \mathbf{W}^\top \mathbf{W} + \sigma^2 \mathbf{I}.
+\]
+
+The posterior provides a probabilistic estimate of the latent variables, incorporating uncertainty into the low-dimensional representation of the data.
+
+Finally, the log-likelihood of the entire dataset \( \mathbf{X} = \{\mathbf{x}_1, \dots, \mathbf{x}_N\} \) is expressed as:
+\[
+\mathcal{L}(\mathbf{W}, \boldsymbol{\mu}, \sigma^2) = -\frac{N}{2} \left[ d \ln(2\pi) + \ln |\mathbf{C}| + \operatorname{Tr}(\mathbf{C}^{-1} \mathbf{S}) \right],
+\]
+where \( \mathbf{S} \) is the sample covariance matrix:
+\[
+\mathbf{S} = \frac{1}{N} \sum_{n=1}^N (\mathbf{x}_n - \bar{\mathbf{x}})(\mathbf{x}_n - \bar{\mathbf{x}})^\top,
+\]
+and \( \bar{\mathbf{x}} \) is the mean of the observed dataset.
+
+\subsection{Maximum Likelihood Estimation of PPCA Parameters}
+
+The maximum likelihood estimate of the mean vector is simply the empirical mean of the observed data:
+\[
+\boldsymbol{\mu}_{\text{ML}} = \frac{1}{N} \sum_{n=1}^N \mathbf{x}_n,
+\]
+where \(N\) is the number of observations.
+
+For the weight matrix \(\mathbf{W}\), the log-likelihood is maximized when its columns are aligned with the eigenvectors of the sample covariance matrix \(\mathbf{S}\) that correspond to the \(q\) largest eigenvalues. The sample covariance matrix \(\mathbf{S}\) is defined as:
+\[
+\mathbf{S} = \frac{1}{N} \sum_{n=1}^N (\mathbf{x}_n - \boldsymbol{\mu}_{\text{ML}})(\mathbf{x}_n - \boldsymbol{\mu}_{\text{ML}})^\top.
+\]
+
+
+Differentiating the log-likelihood with respect to \(\mathbf{W}\) gives us the following:
+\[
+\frac{\partial \mathcal{L}}{\partial \mathbf{W}} = N(\mathbf{C}^{-1} \mathbf{S}\mathbf{C}^{-1}\mathbf{W}  - \mathbf{C}^{-1} \mathbf{W}) = 0,
+\]
+now using $\mathbf{C} = \mathbf{W} \mathbf{W}^\top + \sigma^2 \mathbf{I}.$
+
+We get the maximum likelihood estimate of the weight matrix as:
+\[
+\mathbf{W}_{\text{ML}} = \mathbf{U}_q (\mathbf{\Lambda}_q - \sigma^2 \mathbf{I})^{1/2} \mathbf{R},
+\]
+where:
+\begin{itemize}
+    \item \(\mathbf{U}_q \in \mathbb{R}^{d \times q}\) is the matrix of eigenvectors of \(\mathbf{S}\) corresponding to the \(q\) largest eigenvalues,
+    \item \(\mathbf{\Lambda}_q \in \mathbb{R}^{q \times q}\) is the diagonal matrix of the \(q\) largest eigenvalues,
+    \item \(\mathbf{R} \in \mathbb{R}^{q \times q}\) is an arbitrary orthogonal rotation matrix.
+\end{itemize}
+
+The log-likelihood achieves its global maximum when the columns of \(\mathbf{W}\) are the eigenvectors of \(\mathbf{S}\) corresponding to the \(q\) largest eigenvalues.
+
+The maximum likelihood estimate of the noise variance \(\sigma^2\) is given by:
+\[
+\sigma^2_{\text{ML}} = \frac{1}{d - q} \sum_{j=q+1}^d \lambda_j,
+\]
+where \(\lambda_{q+1}, \ldots, \lambda_d\) are the smallest \(d - q\) eigenvalues of the sample covariance matrix \(\mathbf{S}\). This ensures that the variance not explained by the first \(q\) principal components is captured by the noise term.
+
+These MLE estimates form the basis for the PPCA model, allowing it to capture both the principal structure of the data and the uncertainty inherent in the observations.
+
+\subsection{EM Algorithm for PPCA}
+
+Although the maximum likelihood estimates for PPCA parameters can be computed directly using the eigendecomposition of the sample covariance matrix, the probabilistic framework of PPCA enables the use of the Expectation-Maximization (EM) algorithm. The EM algorithm provides a natural and iterative approach for estimating the parameters \(\mathbf{W}\), \(\boldsymbol{\mu}\), and \(\sigma^2\) in the PPCA model. This method can offer computational advantages, especially for high-dimensional data (\(d\)) or when the dataset is incomplete, as it avoids explicitly forming and diagonalizing the sample covariance matrix.
+
+\subsubsection{E-Step}
+
+In the E-step, we compute the expected value of the latent variables \(\mathbf{z}_n\) and their second moments, conditioned on the observed data:
+\[
+\mathbb{E}[\mathbf{z}_n | \mathbf{x}_n] = \mathbf{M}^{-1} \mathbf{W}^\top (\mathbf{x}_n - \boldsymbol{\mu}),
+\]
+\[
+\mathbb{E}[\mathbf{z}_n \mathbf{z}_n^\top | \mathbf{x}_n] = \sigma^2 \mathbf{M}^{-1} + \mathbb{E}[\mathbf{z}_n | \mathbf{x}_n] \mathbb{E}[\mathbf{z}_n | \mathbf{x}_n]^\top,
+\]
+where:
+\[
+\mathbf{M} = \mathbf{W}^\top \mathbf{W} + \sigma^2 \mathbf{I}.
+\]
+
+These expectations reflect the posterior mean and covariance of the latent variables under the current parameter estimates.
+
+\subsubsection{M-Step}
+In the M-step, we update the parameters \(\mathbf{W}\), \(\boldsymbol{\mu}\), and \(\sigma^2\) by maximizing the expected complete-data log-likelihood.
+
+The weight matrix is updated as:
+\[
+\mathbf{W}_{\text{new}} = \mathbf{S} \mathbf{W} (\sigma^2 \mathbf{I} + \mathbf{M}^{-1} \mathbf{W}^\top \mathbf{S} \mathbf{W})^{-1},
+\]
+
+The noise variance is updated as:
+\[
+\sigma^2_{\text{new}} = \frac{1}{d} \left[ \operatorname{Tr}(\mathbf{S}) - \operatorname{Tr}(\mathbf{S} \mathbf{W} \mathbf{M}^{-1} \mathbf{W}_{\text{new}}^\top) \right].
+\]
+
+The EM algorithm avoids directly diagonalizing the sample covariance matrix and provides a robust framework for high-dimensional and incomplete data.
+
+\section{Extensions of PPCA}
+%why extend PPCA? what are the limitations?
+
+\subsection{Mixture of PPCA Models}
+
+
+The Mixture of PPCA models (MPPCA) extends the probabilistic framework of PPCA to capture multimodal data distributions. By combining multiple PPCA components, each of which models a local linear subspace, MPPCA is well-suited for datasets with heterogeneous or clustered structures.
+
+\subsubsection{Generative Model}
+
+MPPCA assumes that the observed data \(\mathbf{x}_n \in \mathbb{R}^d\) is generated from a mixture of \(K\) local PPCA components. Each component corresponds to a Gaussian distribution parameterized by a local mean \(\boldsymbol{\mu}_k\) and covariance matrix \(\mathbf{C}_k\).
+
+The generative process for the data can be described as follows:
+\begin{enumerate}
+    \item A latent variable \(z_n \in \{1, \dots, K\}\) is drawn from a categorical prior distribution:
+    \[
+    p(z_n = k) = \pi_k, \quad \text{where} \, \sum_{k=1}^K \pi_k = 1.
+    \]
+    Here, \(\pi_k\) represents the mixing coefficients (the prior probabilities of each component).
+
+    \item Conditioned on \(z_n = k\), the observed data \(\mathbf{x}_n\) is generated from a Gaussian distribution with parameters \((\boldsymbol{\mu}_k, \mathbf{C}_k)\):
+    \[
+    p(\mathbf{x}_n | z_n = k) = \mathcal{N}(\mathbf{x}_n | \boldsymbol{\mu}_k, \mathbf{C}_k),
+    \]
+    where the covariance matrix \(\mathbf{C}_k\) is defined as:
+    \[
+    \mathbf{C}_k = \mathbf{W}_k \mathbf{W}_k^\top + \sigma_k^2 \mathbf{I}.
+    \]
+    \begin{itemize}
+        \item \(\boldsymbol{\mu}_k \in \mathbb{R}^d\) is the mean of the \(k\)-th PPCA component.
+        \item \(\mathbf{W}_k \in \mathbb{R}^{d \times q}\) maps the \(q\)-dimensional latent subspace to the observed \(d\)-dimensional space.
+        \item \(\sigma_k^2 \mathbf{I}\) accounts for the isotropic Gaussian noise.
+    \end{itemize}
+\end{enumerate}
+
+The overall marginal distribution of the observed data \(\mathbf{x}_n\) is obtained by summing over all \(K\) components (marginalizing out the latent variable \(z_n\)):
+\[
+p(\mathbf{x}_n) = \sum_{k=1}^K \pi_k \mathcal{N}(\mathbf{x}_n | \boldsymbol{\mu}_k, \mathbf{C}_k).
+\]
+
+This mixture model captures the multimodal nature of complex datasets, where each Gaussian component corresponds to a distinct region or subspace of the data distribution.
+
+\subsubsection{Posterior Distribution of the Latent Variables}
+
+Given the observed data \(\mathbf{x}_n\), the posterior distribution of the latent variable \(z_n\) (i.e., the probability that \(\mathbf{x}_n\) belongs to the \(k\)-th component) is obtained using Bayes' theorem:
+\[
+p(z_n = k | \mathbf{x}_n) = \frac{\pi_k \mathcal{N}(\mathbf{x}_n | \boldsymbol{\mu}_k, \mathbf{C}_k)}{\sum_{j=1}^K \pi_j \mathcal{N}(\mathbf{x}_n | \boldsymbol{\mu}_j, \mathbf{C}_j)}.
+\]
+
+Here:
+\begin{itemize}
+    \item The numerator \(\pi_k \mathcal{N}(\mathbf{x}_n | \boldsymbol{\mu}_k, \mathbf{C}_k)\) represents the joint probability of \(\mathbf{x}_n\) and \(z_n = k\).
+    \item The denominator \(\sum_{j=1}^K \pi_j \mathcal{N}(\mathbf{x}_n | \boldsymbol{\mu}_j, \mathbf{C}_j)\) is the marginal likelihood (evidence) of the data.
+\end{itemize}
+
+The posterior \(p(z_n = k | \mathbf{x}_n)\) reflects the \textit{responsibility} that the \(k\)-th PPCA component has for generating the observation \(\mathbf{x}_n\).
+
+\subsubsection{Log-Likelihood of the Model}
+
+The log-likelihood of the observed dataset \(\mathbf{X} = \{\mathbf{x}_1, \dots, \mathbf{x}_N\}\) under the MPPCA model is expressed as:
+\[
+\mathcal{L}(\Theta) = \sum_{n=1}^N \ln \left( \sum_{k=1}^K \pi_k \mathcal{N}(\mathbf{x}_n | \boldsymbol{\mu}_k, \mathbf{C}_k) \right),
+\]
+where \(\Theta = \{\pi_k, \boldsymbol{\mu}_k, \mathbf{W}_k, \sigma_k^2\}_{k=1}^K\) represents the model parameters:
+\begin{itemize}
+    \item \(\pi_k\): mixing coefficients such that \(\sum_{k=1}^K \pi_k = 1\),
+    \item \(\boldsymbol{\mu}_k\): the mean vector for component \(k\),
+    \item \(\mathbf{C}_k = \mathbf{W}_k \mathbf{W}_k^\top + \sigma_k^2 \mathbf{I}\): the covariance matrix.
+\end{itemize}
+
+\subsubsection{Responsibilities and Soft Assignment}
+To assign data points to mixture components, the **responsibility** \(r_{nk}\) is introduced. This is the posterior probability that observation \(\mathbf{x}_n\) belongs to component \(k\), defined as:
+\[
+r_{nk} = p(z_n = k | \mathbf{x}_n) = \frac{\pi_k \mathcal{N}(\mathbf{x}_n | \boldsymbol{\mu}_k, \mathbf{C}_k)}{\sum_{j=1}^K \pi_j \mathcal{N}(\mathbf{x}_n | \boldsymbol{\mu}_j, \mathbf{C}_j)}.
+\]
+The posterior responsibilities \(r_{nk}\) facilitate **soft assignments** of data points to components, allowing overlap among mixture components.
+
+\subsubsection{EM Algorithm for MPPCA}
+
+In the MPPCA Model, we maximize the parameters for all clusters simultaneously. The E-step, computes the posterior responsibilities \(r_{nk}\),
+ and the M-step updates the model parameters. The algorithm is outlined below:
+
+\subsubsection{Algorithm Summary}
+
+\begin{algorithm}[H]
+\caption{EM Algorithm for MPPCA}
+\label{alg:MPPCA}
+    \begin{algorithmic}  % Remove numbering by using default or alternative environments
+    \STATE \textbf{Input:} Observed data \(\mathbf{X} = \{\mathbf{x}_1, \dots, \mathbf{x}_N\}\), number of components \(K\).
+
+    \STATE \textbf{Initialization:} Initialize \(\pi_k\), \(\boldsymbol{\mu}_k\), \(\mathbf{W}_k\), and \(\sigma_k^2\) for all \(k\).
+
+    \REPEAT
+        \STATE \textbf{E-step:} Compute the responsibilities \(r_{nk}\) for each observation \(n\) and component \(k\):
+        \[
+            \mathbf{C}_k = \mathbf{W}_k \mathbf{W}_k^\top + \sigma_k^2 \mathbf{I}.
+           \]
+        \[
+        r_{nk} = \frac{\pi_k \mathcal{N}(\mathbf{x}_n | \boldsymbol{\mu}_k, \mathbf{C}_k)}{\sum_{j=1}^K \pi_j \mathcal{N}(\mathbf{x}_n | \boldsymbol{\mu}_j, \mathbf{C}_j)}
+        \]
+
+    
+        \STATE \textbf{M-step:} Update the parameters:
+        \begin{itemize}
+            \item Update the mixing coefficients and means:
+            \[
+            \pi_k = \frac{1}{N} \sum_{n=1}^N r_{nk}, \quad \boldsymbol{\mu}_k = \frac{\sum_{n=1}^N r_{nk} \mathbf{x}_n}{\sum_{n=1}^N r_{nk}}.
+            \]
+            \item Update the covariance matrix:
+            \[
+            \mathbf{S}_k = \frac{1}{N_k} \sum_{n=1}^N r_{nk} (\mathbf{x}_n - \boldsymbol{\mu}_k)(\mathbf{x}_n - \boldsymbol{\mu}_k)^\top, 
+            \]
+            \item \textbf{Update Weight Matrix:}
+            Perform the eigendecomposition of \(\mathbf{S}_k\):
+            \[
+            \mathbf{S}_k = \mathbf{U}_k \mathbf{\Lambda}_k \mathbf{U}_k^\top.
+            \]
+            Update the weight matrix \(\mathbf{W}_k\) using the top \(q\) eigenvalues:
+            \[
+            \mathbf{W}_k = \mathbf{U}_k \left( \mathbf{\Lambda}_k - \sigma_k^2 \mathbf{I} \right)^{1/2}.
+            \]
+            \item Update the noise variance:
+            \[
+            \sigma_k^2 = \frac{1}{d} \left[ \operatorname{Tr}(\mathbf{S}_k) - \operatorname{Tr}(\mathbf{W}_k^\top \mathbf{S}_k \mathbf{W}_k) \right].
+            \]
+        \end{itemize}
+    
+    \UNTIL{The log-likelihood converges.}
+    \end{algorithmic}
+    \end{algorithm}
+
+    \subsection{Probabilistic Kernel PCA}
+
+    Classical Principal Component Analysis (PCA) assumes a linear relationship in the data, limiting its ability to model complex nonlinear structures. Kernel PCA (KPCA) overcomes this limitation by projecting the data into a high-dimensional feature space \(\mathcal{F}\) using a kernel function \(k(\mathbf{x}_i, \mathbf{x}_j)\). By operating in this implicit feature space, KPCA enables the extraction of nonlinear relationships while still relying on linear algebraic techniques.
+    
+    Zhang et al. introduced Probabilistic Kernel PCA (PKPCA), combining the nonlinear mapping of KPCA with the framework of PPCA. PKPCA models the data in the kernel-induced feature space \(\mathcal{F}\), providing both the flexibility to capture nonlinear structures and the ability to incorporate uncertainty into the model.
+    
+    \subsubsection{Generative Model}
+
+    In PKPCA, the kernel-induced feature space \(\mathcal{F}\) is assumed to consist of mutually independent Gaussian processes. The generative process for the feature vector \(\mathbf{g}\) in \(\mathcal{F}\) is defined as:
+    \[
+    \mathbf{g} = \mathbf{B} \mathbf{w} + u \mathbf{1}_n + \boldsymbol{\epsilon},
+    \]
+    where:
+    \begin{itemize}
+        \item \(\mathbf{g} \in \mathbb{R}^n\) is the feature vector in the kernel-induced space,
+        \item \(\mathbf{B} \in \mathbb{R}^{n \times m}\) is the weight matrix mapping the \(m\)-dimensional latent variables \(\mathbf{w} \in \mathbb{R}^m\) to the \(n\)-dimensional feature space,
+        \item \(u\) is a scalar allowing the feature space to have a non-zero mean,
+        \item \(\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, n\sigma^2 \mathbf{I})\) represents Gaussian noise with variance \(n\sigma^2\).
+    \end{itemize}
+    
+    The latent variables \(\mathbf{w}\) follow a standard Gaussian prior:
+    \[
+    \mathbf{w} \sim \mathcal{N}(\mathbf{0}, \mathbf{I}).
+    \]
+    
+    Thus, the marginal distribution of the observed data \(\mathbf{x}\) in the feature space is:
+    \[
+    p(\mathbf{g}) = \mathcal{N}(\mathbf{g} | u \mathbf{1}_n, \mathbf{B} \mathbf{B}^\top + n\sigma^2 \mathbf{I}).
+    \]
+    
+    \subsubsection{Posterior Distribution}
+    
+    Given the observed data \(\mathbf{g}\), the posterior distribution of the latent variables \(\mathbf{w}\) is Gaussian:
+    \[
+    p(\mathbf{w} | \mathbf{g}) = \mathcal{N}(\mathbf{w} | \mathbf{M}^{-1} \mathbf{B}^\top (\mathbf{g} - u \mathbf{1}_n), \sigma^2 \mathbf{M}^{-1}),
+    \]
+    where:
+    \[
+    \mathbf{M} = \mathbf{B}^\top \mathbf{B} + \sigma^2 \mathbf{I}.
+    \]
+    
+    \subsubsection{Kernel Trick and Maximum Likelihood Estimation}
+    
+    To avoid explicitly working in the feature space, PKPCA uses the kernel trick. The kernel matrix is defined as:
+    \[
+    \mathbf{K} = \mathbf{\Phi} \mathbf{\Phi}^\top,
+    \]
+    where \(\mathbf{\Phi}\) maps the data into the feature space. The covariance of the marginal likelihood becomes:
+    \[
+    \mathbf{C} = \mathbf{K} + n\sigma^2 \mathbf{I}.
+    \]
+    
+    The log-likelihood of the observed data under PKPCA is:
+    \[
+    \mathcal{L} = -\frac{r}{2} \log |\mathbf{B}\mathbf{B}^\top + \sigma^2 \mathbf{I}_n| - \frac{r}{2n} \operatorname{Tr} \left( (\mathbf{B}\mathbf{B}^\top + \sigma^2 \mathbf{I}_n)^{-1} \mathbf{H}\mathbf{K}\mathbf{H} \right),
+    \]
+    where:
+    \begin{itemize}
+        \item \(\mathbf{H} = \mathbf{I}_n - \frac{1}{n} \mathbf{1}_n \mathbf{1}_n^\top\) is the centering matrix,
+        \item \(\mathbf{K}\) is the kernel matrix.
+    \end{itemize}
+    
+    The model parameters \(\mathbf{B}\) and \(\sigma^2\) are optimized as:
+    \[
+    \sigma^2_{\text{ML}} = \frac{1}{n - m} \sum_{j=m+1}^n \lambda_j,
+    \]
+    \[
+    \mathbf{B}_{\text{ML}} = \mathbf{U}_m (\mathbf{\Lambda}_m - \sigma^2 \mathbf{I})^{1/2} \mathbf{R},
+    \]
+    where:
+    \begin{itemize}
+        \item \(\mathbf{U}_m\) contains the top \(m\) eigenvectors of \(\frac{1}{n} \mathbf{H} \mathbf{K} \mathbf{H}\),
+        \item \(\mathbf{\Lambda}_m\) is the diagonal matrix of the top \(m\) eigenvalues,
+        \item \(\mathbf{R}\) is an arbitrary orthogonal matrix.
+    \end{itemize}
+    
+    \subsubsection{EM Algorithm for PKPCA}
+    
+    The parameters of the PKPCA model can also be estimated iteratively using the Expectation-Maximization (EM) algorithm. The algorithm alternates between computing the posterior distribution of the latent variables and updating the model parameters.
+    
+    \begin{algorithm}[H]
+    \caption{EM Algorithm for PKPCA}
+    \begin{algorithmic}[1]
+        \STATE \textbf{Input:} Kernel matrix \(\mathbf{K}\), dimensionality \(m\), noise variance \(\sigma^2\), tolerance \(\text{tol}\)
+        \STATE \textbf{Initialize:} Weight matrix \(\mathbf{B}\), mean \(u\), noise variance \(\sigma^2\)
+        \REPEAT
+            \STATE \textbf{E-Step:} Compute the posterior distribution of latent variables:
+            \[
+            p(\mathbf{w} | \mathbf{g}) = \mathcal{N}(\mathbf{M}^{-1} \mathbf{B}^\top (\mathbf{g} - u \mathbf{1}_n), \sigma^2 \mathbf{M}^{-1}),
+            \]
+            where \(\mathbf{M} = \mathbf{B}^\top \mathbf{B} + \sigma^2 \mathbf{I}\).
+            \STATE \textbf{M-Step:} Update the model parameters:
+            \begin{itemize}
+                \item Update noise variance:
+                \[
+                \sigma^2_{\text{new}} = \frac{1}{n - m} \sum_{j=m+1}^n \lambda_j.
+                \]
+                \item Update weight matrix:
+                \[
+                \mathbf{B}_{\text{new}} = \mathbf{U}_m (\mathbf{\Lambda}_m - \sigma^2_{\text{new}} \mathbf{I})^{1/2} \mathbf{R}.
+                \]
+            \end{itemize}
+        \UNTIL{Change in log-likelihood \(\mathcal{L}\) is below \(\text{tol}\).}
+        \STATE \textbf{Output:} Optimized parameters \(\mathbf{B}\), \(\sigma^2\), and posterior distribution.
+    \end{algorithmic}
+    \end{algorithm}
+    
+\subsection{Probabilistic Kernel PCA Through Time}
+%explain how we can extend the probabilistic kernel PCA model to time series data by introducing a time-dependent kernel function.
+
+%Theoretical results from this paper
+
+\section{Original Contributions}
+Armed with the Probabilistic Kernel PCA Model, we explore applying Bayesian optimization techniques for finding optimal kernel parameters and kernel functions.
+
+
+\section{Implementation and Experimental Results}
+
+%Explain that we implemented all algorithms from scratch so that we could extend them to our own models.
+
+%explaint the outline of this section, what we are comparing, what we are looking for, what data are we using.
+
+\subsection{Comparison of efficiency of Analytical PPCA versus EM PPCA}
+
+\subsection{Mixture of PPCA models}
+
+\subsection{A Real World Application}
+%Apply developed to a real world dataset to derive original insights and explain how this is only possible with the probabilistic formulation.
+
+
+\bibliography{example_paper}
+\bibliographystyle{icml2018}
+
+\end{document}
