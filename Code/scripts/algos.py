@@ -1,10 +1,6 @@
 import numpy as np
 from numpy.linalg import eigh, inv, slogdet
 
-###############################################################################
-#                         1) PPCA via Eigen-decomposition                     #
-###############################################################################
-
 class PPCAEigen:
     """
     Single-component PPCA using an eigen-decomposition approach.
@@ -181,10 +177,6 @@ class PPCAEigen:
         Z = self.transform(X_in)
         return self.inverse_transform(Z)
 
-
-###############################################################################
-#                          2) PPCA via EM Algorithm                           #
-###############################################################################
 
 class PPCAEM:
     """
@@ -364,10 +356,6 @@ class PPCAEM:
         Z = self.transform(X_in)
         return self.inverse_transform(Z)
 
-
-###############################################################################
-#                   3) Mixture of PPCA (closer to Tipping & Bishop)           #
-###############################################################################
 
 class MixtureOfPPCA:
     """
